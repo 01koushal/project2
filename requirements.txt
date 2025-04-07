@@ -1,0 +1,10 @@
+Flask
+Werkzeug
+pytesseract
+numpy
+opencv-python
+PyMuPDF
+pyzbar
+pandas
+openpyxl
+gunicorn
