@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Verified Students | TechStorm</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #1e3a8a, #0f172a);
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+  </style>
+</head>
+<body class="min-h-screen text-white font-sans px-4 py-8">
+  <div class="glass max-w-5xl mx-auto rounded-3xl p-10 space-y-6">
+    <h2 class="text-3xl font-bold text-indigo-300 text-center">✅ Verified Students</h2>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full table-auto text-sm text-left text-indigo-100 border-separate border-spacing-y-2">
+        <thead>
+          <tr class="text-indigo-200">
+            <th>Name</th>
+            <th>Email</th>
+            <th>Platform</th>
+            <th>Status</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for student in students %}
+          <tr class="bg-white/10 backdrop-blur-sm rounded-xl">
+            <td class="px-4 py-2">{{ student.Name }}</td>
+            <td class="px-4 py-2">{{ student.Email }}</td>
+            <td class="px-4 py-2">{{ student.Platform }}</td>
+            <td class="px-4 py-2 font-bold {% if student.Status == 'Real' %}text-green-400{% else %}text-red-400{% endif %}">{{ student.Status }}</td>
+            <td class="px-4 py-2">{{ student.Date }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="text-center pt-6">
+      <a href="/download-excel" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-xl font-semibold shadow-md">
+        📥 Download Excel
+      </a>
+    </div>
+  </div>
+</body>
+</html>

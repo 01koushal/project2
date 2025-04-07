@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Upload | TechStorm</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #1e3a8a, #0f172a);
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center text-white font-sans px-4">
+  <div class="glass max-w-xl w-full rounded-3xl p-10 space-y-6">
+    <h2 class="text-3xl font-bold text-indigo-300 text-center">Upload Certificate</h2>
+    <form action="/verify" method="POST" enctype="multipart/form-data" class="space-y-4">
+      <input type="text" name="name" placeholder="Your Name" required class="w-full bg-white/10 text-white p-2 rounded-xl border border-white/20 placeholder-indigo-200" />
+      <input type="email" name="email" placeholder="Your Email" required class="w-full bg-white/10 text-white p-2 rounded-xl border border-white/20 placeholder-indigo-200" />
+      <input type="file" name="certificate" accept=".pdf" required class="w-full bg-white/10 text-white p-2 rounded-xl border border-white/20" />
+      <button type="submit" class="w-full bg-gradient-to-r from-purple-600 to-indigo-500 text-white px-6 py-2 rounded-xl font-semibold shadow-md">
+        🚀 Verify Certificate
+      </button>
+    </form>
+    <a href="/" class="block text-center text-indigo-200 text-sm pt-4 hover:underline">⬅ Back to Home</a>
+  </div>
+</body>
+</html>
