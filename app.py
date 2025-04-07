@@ -6,7 +6,6 @@ import pytesseract
 import json
 import os
 import re
-from pyzbar.pyzbar import decode
 from datetime import datetime
 from werkzeug.utils import secure_filename
 import pandas as pd
@@ -34,13 +33,15 @@ def extract_qr_from_pdf(pdf_path):
     return extract_qr_from_image_array(cv_img)
 
 def extract_qr_from_image_array(image):
+    # Resize and preprocess image
     image = cv2.resize(image, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
-    qr_codes = decode(gray)
-    for qr in qr_codes:
-        return qr.data.decode('utf-8')
-    return None
+
+    # Use OpenCV QRCodeDetector
+    detector = cv2.QRCodeDetector()
+    data, bbox, _ = detector.detectAndDecode(gray)
+
+    return data if data else None
 
 def extract_text_from_certificate(file_path):
     text = ""
