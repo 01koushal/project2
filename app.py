@@ -11,7 +11,8 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 import pandas as pd
 
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# Optional: set tesseract path for local (on Render it's unnecessary)
+# pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -120,14 +121,10 @@ def download_excel():
 
     try:
         df = pd.DataFrame(students)
-        excel_path = os.path.join(app.root_path, "verified_students.xlsx")
+        excel_path = os.path.join("/tmp", "verified_students.xlsx")
         df.to_excel(excel_path, index=False, engine='openpyxl')
         return send_file(excel_path, as_attachment=True)
     except Exception as e:
         print("Excel generation failed:", e)
         flash("Something went wrong while generating the Excel file.")
         return redirect(url_for("show_verified"))
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
