@@ -10,7 +10,7 @@ from datetime import datetime
 from werkzeug.utils import secure_filename
 import pandas as pd
 
-# Optional: set tesseract path for local (on Render it's unnecessary)
+# Optional: set tesseract path for local if needed
 # pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 app = Flask(__name__)
@@ -22,26 +22,56 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 students = []
 
+from pyzbar.pyzbar import decode
+
 def extract_qr_from_pdf(pdf_path):
     doc = fitz.open(pdf_path)
-    pix = doc[0].get_pixmap()
-    img = np.frombuffer(pix.samples, dtype=np.uint8).reshape((pix.h, pix.w, pix.n))
-    if img.shape[-1] == 4:
-        cv_img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
-    else:
-        cv_img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-    return extract_qr_from_image_array(cv_img)
+    qr_data = None
+    
+    # Try each page until we find a QR code
+    for page_num in range(len(doc)):
+        pix = doc[page_num].get_pixmap()
+        img = np.frombuffer(pix.samples, dtype=np.uint8).reshape((pix.h, pix.w, pix.n))
+        
+        # Convert to OpenCV format
+        if img.shape[-1] == 4:
+            cv_img = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
+        else:
+            cv_img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+            
+        qr_data = extract_qr_from_image_array(cv_img)
+        if qr_data:
+            break
+            
+    doc.close()
+    return qr_data
 
 def extract_qr_from_image_array(image):
-    # Resize and preprocess image
-    image = cv2.resize(image, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    # Use OpenCV QRCodeDetector
-    detector = cv2.QRCodeDetector()
-    data, bbox, _ = detector.detectAndDecode(gray)
-
-    return data if data else None
+    # Try different image preprocessing techniques
+    attempts = [
+        lambda x: x,  # Original image
+        lambda x: cv2.resize(x, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC),  # Upscale
+        lambda x: cv2.GaussianBlur(x, (3,3), 0),  # Blur to reduce noise
+        lambda x: cv2.adaptiveThreshold(cv2.cvtColor(x, cv2.COLOR_BGR2GRAY), 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)  # Adaptive threshold
+    ]
+    
+    for process in attempts:
+        try:
+            processed = process(image)
+            # Try pyzbar first
+            decoded_objects = decode(processed)
+            if decoded_objects:
+                return decoded_objects[0].data.decode('utf-8')
+                
+            # Fallback to OpenCV QR detector
+            detector = cv2.QRCodeDetector()
+            data, bbox, _ = detector.detectAndDecode(processed)
+            if data:
+                return data
+        except Exception:
+            continue
+            
+    return None
 
 def extract_text_from_certificate(file_path):
     text = ""
@@ -49,7 +79,7 @@ def extract_text_from_certificate(file_path):
         doc = fitz.open(file_path)
         for page in doc:
             text += page.get_text("text")
-    return text.lower()
+    return ' '.join(text.lower().split())
 
 def normalize_date(date_text):
     try:
@@ -86,19 +116,23 @@ def verify():
             issued_to = qr_json["credentialSubject"]["issuedTo"].strip().lower()
             course = qr_json["credentialSubject"]["course"].strip().lower()
             date_completed = qr_json["credentialSubject"]["completedOn"][:10]
+
+            extracted_text = extract_text_from_certificate(file_path)
+
+            # Extract visible completion date from text (e.g. "on April 29, 2024")
+            match = re.search(r"on (\w+ \d{1,2}, \d{4})", extracted_text)
+            ocr_date = normalize_date(match.group(1)) if match else None
+
+            # Perform simple substring matches
+            name_match = issued_to in extracted_text
+            course_match = course in extracted_text
+            date_match = ocr_date == date_completed if ocr_date else False
+
+            if name_match and course_match and date_match:
+                status = "Real"
+
         except Exception as e:
-            issued_to = ""
-
-        extracted_text = extract_text_from_certificate(file_path)
-        match = re.search(r"on (\w+ \d{1,2}, \d{4})", extracted_text)
-        ocr_date = normalize_date(match.group(1)) if match else None
-
-        if (
-            issued_to in extracted_text and
-            course in extracted_text and
-            (ocr_date == date_completed)
-        ):
-            status = "Real"
+            print("Error verifying certificate:", e)
 
     students.append({
         "Name": name.title(),
@@ -129,3 +163,6 @@ def download_excel():
         print("Excel generation failed:", e)
         flash("Something went wrong while generating the Excel file.")
         return redirect(url_for("show_verified"))
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5000)
